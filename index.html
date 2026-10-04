@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dice Roller</title>
+<style>
+  :root { --size: 140px; --bg: #1d2330; --die: #fafafa; --pip: #1d2330; --text: #e8ecf3; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    background: radial-gradient(circle at 50% 40%, #2c3547, var(--bg));
+    color: var(--text);
+    font-family: system-ui, -apple-system, sans-serif;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 56px; cursor: pointer; user-select: none; -webkit-tap-highlight-color: transparent;
+  }
+  .scene { width: var(--size); height: var(--size); perspective: 700px; }
+  .cube {
+    width: 100%; height: 100%; position: relative; transform-style: preserve-3d;
+    transform: rotateX(-20deg) rotateY(25deg);
+    transition: transform 1.4s cubic-bezier(.17,.84,.32,1.05);
+  }
+  .face {
+    position: absolute; inset: 0; background: var(--die); border-radius: 18%;
+    display: grid; grid-template: repeat(3, 1fr) / repeat(3, 1fr); padding: 14%;
+    box-shadow: inset 0 0 18px rgba(0,0,0,.18);
+  }
+  .pip { width: 72%; height: 72%; margin: auto; border-radius: 50%; background: var(--pip);
+         box-shadow: inset 0 3px 4px rgba(0,0,0,.5); }
+  .f1 { transform: translateZ(calc(var(--size) / 2)); }
+  .f6 { transform: rotateY(180deg) translateZ(calc(var(--size) / 2)); }
+  .f3 { transform: rotateY(90deg) translateZ(calc(var(--size) / 2)); }
+  .f4 { transform: rotateY(-90deg) translateZ(calc(var(--size) / 2)); }
+  .f2 { transform: rotateX(90deg) translateZ(calc(var(--size) / 2)); }
+  .f5 { transform: rotateX(-90deg) translateZ(calc(var(--size) / 2)); }
+  .shadow {
+    width: calc(var(--size) * 1.1); height: 20px; margin-top: -40px;
+    background: radial-gradient(ellipse, rgba(0,0,0,.45), transparent 70%);
+  }
+  .result { font-size: 64px; font-weight: 700; min-height: 1.2em; transition: opacity .2s; }
+  .hint { opacity: .6; font-size: 15px; }
+</style>
+</head>
+<body>
+  <div class="result" id="result">&nbsp;</div>
+  <div class="scene"><div class="cube" id="cube"></div></div>
+  <div class="shadow"></div>
+  <div class="hint">Click or tap anywhere to roll</div>
+
+<script>
+  // pip positions in a 3x3 grid (1-9, row by row)
+  const PIPS = { 1:[5], 2:[3,7], 3:[3,5,7], 4:[1,3,7,9], 5:[1,3,5,7,9], 6:[1,3,4,6,7,9] };
+  // cube rotation (x, y) that brings each face to the front
+  const TARGET = { 1:[0,0], 2:[-90,0], 3:[0,-90], 4:[0,90], 5:[90,0], 6:[0,180] };
+
+  const cube = document.getElementById('cube');
+  const result = document.getElementById('result');
+
+  for (let n = 1; n <= 6; n++) {
+    const face = document.createElement('div');
+    face.className = 'face f' + n;
+    for (let cell = 1; cell <= 9; cell++) {
+      const slot = document.createElement('div');
+      if (PIPS[n].includes(cell)) slot.className = 'pip';
+      slot.style.gridArea = `${Math.ceil(cell / 3)} / ${((cell - 1) % 3) + 1}`;
+      face.appendChild(slot);
+    }
+    cube.appendChild(face);
+  }
+
+  let rx = 0, ry = 0, rolling = false;
+
+  function roll() {
+    if (rolling) return;
+    rolling = true;
+    result.style.opacity = 0;
+
+    const n = 1 + Math.floor(Math.random() * 6);
+    const [tx, ty] = TARGET[n];
+    // spin forward by 2-4 full turns on each axis, then land on the target face
+    const turnsX = 2 + Math.floor(Math.random() * 3);
+    const turnsY = 2 + Math.floor(Math.random() * 3);
+    rx = (Math.floor(rx / 360) + turnsX) * 360 + tx;
+    ry = (Math.floor(ry / 360) + turnsY) * 360 + ty;
+    cube.style.transform = `rotateX(${rx}deg) rotateY(${ry}deg)`;
+
+    setTimeout(() => {
+      result.textContent = n;
+      result.style.opacity = 1;
+      rolling = false;
+    }, 1400);
+  }
+
+  document.body.addEventListener('click', roll);
+  document.addEventListener('keydown', e => { if (e.code === 'Space' || e.code === 'Enter') roll(); });
+</script>
+</body>
+</html>
